@@ -1063,11 +1063,11 @@ void setup() {
   gb.titleScreen(F("SD MAP TEST"));
   map_buffer[8][8] = 1;
   map_buffer[2][2] = 1;
-  for( uint8_t i = 0; i < 16; i++ ){
+  for( uint8_t i = 0; i < MAP_BUFFER_SIZE; i++ ){
     map_buffer[i][0] = 1;
-    map_buffer[i][15] = 1;
+    map_buffer[i][MAP_BUFFER_SIZE-1] = 1;
     map_buffer[0][i] = 1;
-    map_buffer[15][i] = 1;
+    map_buffer[MAP_BUFFER_SIZE-1][i] = 1;
   }
 }
 
@@ -1078,7 +1078,12 @@ void draw_map(){
       tile = map_buffer[j][i];
       // Display bitmap from buffer at an offset determined by where the camera
       //is in the buffer, with wraparound
-      gb.display.drawBitmap((i*8)-cameraX%(MAP_BUFFER_SIZE*8),(j*8)-cameraY%(MAP_BUFFER_SIZE*8),&map_tiles[tile*TILE_SIZE]);
+      int16_t offx = cameraX%(MAP_BUFFER_SIZE*8);
+      int16_t offy = cameraY%(MAP_BUFFER_SIZE*8);
+      gb.display.drawBitmap((i*8)-offx,(j*8)-offy,&map_tiles[tile*TILE_SIZE]);
+      gb.display.drawBitmap((i*8)-offx+MAP_BUFFER_SIZE*8,(j*8)-offy,&map_tiles[tile*TILE_SIZE]);
+      gb.display.drawBitmap((i*8)-offx,(j*8)-offy+MAP_BUFFER_SIZE*8,&map_tiles[tile*TILE_SIZE]);
+      gb.display.drawBitmap((i*8)-offx+MAP_BUFFER_SIZE*8,(j*8)-offy+MAP_BUFFER_SIZE*8,&map_tiles[tile*TILE_SIZE]);
     }
   }
 }
