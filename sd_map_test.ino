@@ -1,7 +1,7 @@
 #include <Gamebuino.h>
 //Use for PROGMEM
 //#include <avr/pgmspace.h>
-#include <petit_fatfs.h>
+/*#include <petit_fatfs.h>
 
 byte rx() { // needed by petit_fatfs
   SPDR = 0xFF;
@@ -12,7 +12,11 @@ byte rx() { // needed by petit_fatfs
 void tx(byte d) { // needed by petit_fatfs
   SPDR = d;
   loop_until_bit_is_set(SPSR, SPIF);
-}
+}*/
+
+#include "SdFat.h"
+SdFat SD;
+File myFile;
 
 Gamebuino gb;
 
@@ -321,11 +325,13 @@ void setup() {
     map_buffer[0][i] = 1;
     map_buffer[MAP_BUFFER_SIZE-1][i] = 1;
   }*/
-  PFFS.begin(10, rx, tx);
-  if( !pf_open("SDMAP.DAT") ){
-    file_status = FILE_OPENED;
-    pf_lseek(0);
-    load_from_sd();
+  //PFFS.begin(10, rx, tx);
+  if( SD.begin(10) ){
+    myFile = SD.open("SDMAP.DAT");
+    if( myFile ){
+      file_status = FILE_OPENED;
+      load_from_sd();
+    }
   }
 }
 
@@ -338,12 +344,11 @@ void setup() {
 //the SD card, based on the camera coordinates
 void load_from_sd(){
   uint8_t i,j;
-  short unsigned int rcount;
   //Skip previous rows, and reach index of camera x and y
   uint16_t index = cameraX/8 + (cameraY/8 * MAP_SIZE);
   for( i = 0; i < MAP_BUFFER_SIZE; i++ ){
-    pf_lseek(index);
-    pf_read(sd_buffer,16,&rcount);
+    myFile.seek(index);
+    myFile.read(sd_buffer,16);
     for( j = 0; j < MAP_BUFFER_SIZE; j++ ){
       map_buffer[i][j] = sd_buffer[j];
     }
@@ -354,7 +359,6 @@ void load_from_sd(){
 
 void load_row_from_sd(uint8_t dir){
   uint8_t i;
-  short unsigned int rcount;
   //Skip previous rows, and reach index of camera x and y
   uint16_t index = cameraX/8 + (cameraY/8 * MAP_SIZE);
   //Depending on direction, shift to correct location
@@ -364,8 +368,8 @@ void load_row_from_sd(uint8_t dir){
     //Shift camera_offset rows down
     index += MAP_SIZE*camera_offset;
   }
-  pf_lseek(index);
-  pf_read(sd_buffer,16,&rcount);
+  myFile.seek(index);
+  myFile.read(sd_buffer,16);
   for( i = 0; i < MAP_BUFFER_SIZE; i++ ){
     //Write new row contents camera_offset rows below camera
     map_buffer[(cameraY/8 + camera_offset)%MAP_BUFFER_SIZE][(cameraX/8 + i)%MAP_BUFFER_SIZE] = sd_buffer[i];
@@ -374,7 +378,6 @@ void load_row_from_sd(uint8_t dir){
 
 void load_col_from_sd(uint8_t dir){
   uint8_t i;
-  short unsigned int rcount;
   //Skip previous rows, and reach index of camera x and y
   uint16_t index = cameraX/8 + (cameraY/8 * MAP_SIZE);
   //Depending on direction, shift to correct location
@@ -386,8 +389,8 @@ void load_col_from_sd(uint8_t dir){
   }
   for( i = 0; i < MAP_BUFFER_SIZE; i++ ){
     //Reading in columns is more expensive than rows due to the layout of the bytes
-    pf_lseek(index);
-    pf_read(sd_buffer,1,&rcount);//Read only one byte
+    myFile.seek(index);
+    myFile.read(sd_buffer,1);//Read only one byte
     //Write new row contents camera_offset columns to right of camera
     //Everything written is relative to the camera
     map_buffer[(cameraY/8 + i)%MAP_BUFFER_SIZE][(cameraX/8 + camera_offset)%MAP_BUFFER_SIZE] = sd_buffer[0];
